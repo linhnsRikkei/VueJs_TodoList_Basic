@@ -10,6 +10,8 @@ const store = createStore({
       todo: "",
       selectedIndex: null,
       isEditing: false,
+      searchContent: "",
+      itemDetail: null,
     };
   },
   mutations: {
@@ -31,10 +33,17 @@ const store = createStore({
       state.items.splice(selectedIndex, 1);
       state.todo = "";
     },
+    searchTask(state, searchContent) {
+      (state.itemDetail = null),
+        (state.itemDetail = state.items.filter(
+          (item) => item.content.toLowerCase() == searchContent.toLowerCase()
+        ));
+      console.log(state.itemDetail);
+    },
   },
   getters: {
-    searchName(state, name) {
-      return state.items.filters((m) => m.content === name);
+    AllList(state) {
+      return state.items.length;
     },
   },
   actions: {
@@ -46,6 +55,9 @@ const store = createStore({
     },
     deleteTask({ commit }, selectedIndex) {
       commit("deleteTask", selectedIndex);
+    },
+    searchTask({ commit }, searchContent) {
+      commit("searchTask", searchContent);
     },
   },
 });
