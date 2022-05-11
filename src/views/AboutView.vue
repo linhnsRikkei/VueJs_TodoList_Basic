@@ -4,18 +4,26 @@ export default {
   el: "#todo",
   data() {
     return {
-      items: this.$store.state.items,
       todo: this.$store.state.todo,
       selectedIndex: this.$store.state.selectedIndex,
       isEditing: this.$store.state.isEditing,
-      itemDetail: this.$store.state.itemDetail,
-      searchContent: this.$store.state.searchContent,
+      searchContent: "",
+      itemSearch: null,
+      sort1: "asc",
+      sort2: "desc",
+      sort: true,
     };
   },
   // noi tao function binh thg
   methods: {
     AddTodo() {
-      this.$store.dispatch("addTask", this.todo), (this.todo = "");
+      this.$store.dispatch("addTask", this.todo),
+        (this.todo = ""),
+        this.CallApi();
+      this.$store.dispatch("getAllApi");
+    },
+    CallApi() {
+      this.$store.dispatch("getAllApi");
     },
     EditItem(item, index) {
       (this.todo = item.content),
@@ -29,18 +37,40 @@ export default {
       };
       (this.isEditing = false),
         this.$store.dispatch("updateTask", payload),
-        (this.todo = "");
+        (this.todo = ""),
+        this.CallApi();
+      this.$store.dispatch("getAllApi");
     },
-    DeleteItem(index) {
-      this.$store.dispatch("deleteTask", index);
+    DeleteItem(id) {
+      this.$store.dispatch("deleteTask", id);
+      setTimeout(() => {
+        this.$store.dispatch("getAllApi");
+      }, 1000);
     },
-    SearchItem() {
-      this.$store.dispatch("searchTask", this.searchContent);
+    sortContentIncrease() {
+      this.sort = !this.sort;
+      var sortKey;
+      if (this.sort === true) {
+        sortKey = this.sort1;
+      } else {
+        sortKey = this.sort2;
+      }
+      this.$store.dispatch("sortContentIncrease", sortKey);
     },
   },
+  // function ko co tham so, chay ko can ()
   computed: {
     AllList() {
       return this.$store.getters.AllList;
+    },
+    searchItem() {
+      const search = this.searchContent;
+      return this.getItems.filter(function (item) {
+        return item.content.toLowerCase().includes(search.toLowerCase());
+      });
+    },
+    getItems() {
+      return this.$store.getters.getItems;
     },
   },
   // tao function vs chuc nang theo doi thuoc tinh cua doi tuong
@@ -62,10 +92,22 @@ export default {
     <h2>Todo list</h2>
 
     <div class="dList text-[20px] flex flex-col justify-center items-center">
-      <!-- Add, Update-->
-      <div v-if="!isEditing" class="w-[700px] flex flex-row justify-between">
+      <!-- search -->
+      <div class="w-[700px] mb-[20px] flex flex-row justify-start items-center">
         <input
-          class="inputText w-[300px] border border-[#e04949] outline-none mr-[30px] pl-[8px] py-[8px]"
+          class="inputText w-full border rounded-lg border-[#030303] outline-none pl-[8px] py-[8px]"
+          type="text"
+          placeholder="Search name subject"
+          v-model="searchContent"
+        />
+      </div>
+      <!-- Add, Update-->
+      <div
+        v-if="!isEditing"
+        class="w-[700px] flex flex-row justify-between mb-[20px]"
+      >
+        <input
+          class="inputText w-[300px] border rounded-lg border-[#050505] outline-none mr-[30px] pl-[8px] py-[8px]"
           type="text"
           placeholder="Name subject"
           v-model="todo"
@@ -79,9 +121,9 @@ export default {
         />
       </div>
       <!-- update-->
-      <div v-else>
+      <div v-else class="w-[700px] flex flex-row justify-between">
         <input
-          class="inputText w-[300px] border border-[#e04949] outline-none mr-[30px] pl-[8px] py-[8px]"
+          class="inputText w-[300px] border rounded-lg border-[#e04949] outline-none mr-[30px] pl-[8px] py-[8px]"
           type="text"
           v-model="todo"
           v-on:keyup.enter="UpdateTodo"
@@ -93,39 +135,21 @@ export default {
           @click="UpdateTodo"
         />
       </div>
-      <!-- search -->
-      <div class="w-[700px] flex flex-row justify-between">
-        <input
-          class="inputText w-[300px] border border-[#e04949] outline-none mr-[30px] pl-[8px] py-[8px]"
-          type="text"
-          placeholder="Name subject"
-          v-model="searchContent"
-          v-on:keyup.enter="SearchItem"
-        />
-        <input
-          class="inputSubmit text-rose-800 border border-gray-500 w-[200px]"
-          type="submit"
-          value="Search Content"
-          v-on:click="SearchItem"
-        />
-      </div>
-      <!-- item detail -->
-      <ol v-if="itemDetail" id="demo" class="w-[700px] mt-[20px]">
-        <h2>Todo tìm kiếm</h2>
-        <li
-          v-bind:key="itemDetail"
-          class="flex flex-row justify-around py-[5px] border-y-[1px] hover:bg-[#e0dddd]"
-        >
-          <div class="w-[400px] text-[#0c0c0c]">
-            {{ itemDetail }}
-          </div>
-        </li>
-      </ol>
+      <!-- San xep theo content -->
+      <button
+        @click="sortContentIncrease()"
+        class="w-[150px] border border-[#070707] mt-[20px]"
+      >
+        Sap xep
+      </button>
       <!-- list -->
       <ol id="demo" class="w-[700px] mt-[20px]">
+        <button @click="CallApi" class="mb-[10px] border p-[5px]">
+          CallApi
+        </button>
         <h2>Tổng danh sách list: {{ AllList }}</h2>
         <li
-          v-for="(item, index) in items"
+          v-for="item in searchItem"
           v-bind:key="item"
           class="flex flex-row justify-around py-[5px] border-y-[1px] hover:bg-[#e0dddd]"
         >
@@ -133,10 +157,10 @@ export default {
             {{ item.content }}
           </div>
           <div class="w-[200px] flex flex-row justify-around">
-            <button @click="EditItem(item, index)" class="border p-[10px]">
+            <button @click="EditItem(item, item.id)" class="border p-[10px]">
               Edit
             </button>
-            <button @click="DeleteItem(index)" class="border p-[10px]">
+            <button @click="DeleteItem(item.id)" class="border p-[10px]">
               Delete
             </button>
           </div>
